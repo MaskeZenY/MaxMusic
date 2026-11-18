@@ -74,16 +74,39 @@ jobs:
         with:
           exclude_inputs: bundle_id,display_name,enable_rymd,enable_ytmabc,enable_youmusicpip,enable_volumeboostyt
 
-      - name: Validate IPA URL
-        run: |
-          curl -L -r 0-1023 -o sample.part "${{ inputs.ipa_url }}" > /dev/null 2>&1
-          
-          file_type=$(file --mime-type -b sample.part)
 
-          if [[ "$file_type" != "application/x-ios-app" && "$file_type" != "application/zip" ]]; then
-            echo "::error::Validation failed: The file is not a valid IPA file. Detected type: $file_type."
+      - name: Validate IPA URL
+        env:
+          IPA_URL: ${{ inputs.ipa_url }}
+        run: |
+          echo "Downloading IPA for validation..."
+
+          curl --fail --location \
+            --retry 3 \
+            --connect-timeout 30 \
+            --max-time 600 \
+            --output ytm.ipa \
+            "$IPA_URL"
+
+          if [ ! -s ytm.ipa ]; then
+            echo "::error::IPA download is empty."
             exit 1
           fi
+
+          echo "Checking IPA archive..."
+
+          unzip -tq ytm.ipa > /dev/null || {
+            echo "::error::Invalid or corrupted IPA archive."
+            exit 1
+          }
+
+          if ! unzip -Z1 ytm.ipa | grep -Eq '^Payload/[^/]+\.app/Info\.plist$'; then
+            echo "::error::Missing iOS app in IPA."
+            exit 1
+          fi
+
+          echo "IPA downloaded and validated successfully!"
+
 
       - name: Install Dependencies
         run: brew install make ldid
