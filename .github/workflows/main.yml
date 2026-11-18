@@ -147,9 +147,6 @@ jobs:
       - name: Install cyan
         run: pipx install --force https://github.com/asdfzxcvbn/pyzule-rw/archive/main.zip
 
-      - name: Download YouTube Music
-        run: wget "${{ inputs.ipa_url }}" --no-verbose -O ytm.ipa
-
       - name: Get YouTube Music Version 
         run: |
           unzip -q ytm.ipa -d ytmextracted
